@@ -1,0 +1,40 @@
+1.管道函数 多次聚合
+//计算每个州的 城市的平均人口数目
+db.E3.aggregate(
+{
+    $group:{
+        _id:{state:"$state",city:"$city"},
+        count:{$sum:"$pop"}
+        }
+    },
+{
+    $group:{
+        _id:{state:"$_id.state"},
+        avg:{$avg:"$count"},
+        count:{$sum:1}
+        }
+    
+    }
+)
+//计算 每个州 最大城市人口数和最小城市人口数
+    db.E3.aggregate(
+    {
+        $group:{
+            _id:{state:"$state",city:"$city"},
+            pop:{$sum:"$pop"}
+            }
+        },
+        {$sort:{
+            pop:1
+            }},
+        {$group:{
+            _id:{state:"$_id.state"},
+            bigCityName:{$first:"$_id.city"},
+            bigCityPop:{$first:"$pop"},
+            smallCityName:{$last:"$_id.city"},
+            smallCityPop:{$last:"$pop"}
+        }
+            }
+    
+  
+    )
