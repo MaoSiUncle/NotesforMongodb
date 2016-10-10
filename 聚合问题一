@@ -1,0 +1,48 @@
+1.某需求要求按照日期中的日进行聚合数据
+简单数据如下：
+/* 1 */
+{
+    "_id" : ObjectId("57fa0cffa934fe238551a0b3"),
+    "value" : 9.2858406131416,
+    "cat" : ISODate("2016-10-01T00:00:00.000Z")
+}
+
+/* 2 */
+{
+    "_id" : ObjectId("57fa0cffa934fe238551a0b4"),
+    "value" : 1.54332910815218,
+    "cat" : ISODate("2016-10-06T00:00:00.000Z")
+}
+...........................此处省略n条数据
+
+思路有三：
+mongodb的三个：
+1.group：这个没试试 感觉官网也不太推荐。but 测了之后才好。
+
+2.mongodb中的mapreduce
+mapreduce中 唯一遇见的坑是 reduce function中的迭代问题，
+按照map函数中的key聚合后 会将key和对应的value组成的数组传入reduce里。
+但是如果某个key对应的值很多 就会被分片传入  比如有两千个值 就会每次传入一部分
+每次传入的一部分数组经过reduce函数处理后的值 会添加到下次传入的值数组的首位，
+eg：第一次reduce的values有50个值，求和，第二次传入就有51个值，数组第一个值 就是第一次传入计算得到的和。然后迭代下去得到结果。
+
+db.Test.mapReduce(
+function(){
+    emit(this.cat.getDate(),1);
+    },
+    function(key,values){
+        var t=values.shift();
+        return values.length+parseInt(t);
+    },
+     {out:'mr'}//切换到 inline:1  大概要快上许多
+)
+3.mongodb中的agg(Aggregate)
+这个没啥好说的  官网的doc看看就可以用了
+表示同样情况下 这个比方法2要快上很多。官网推荐agg。
+
+db.Test.aggregate(
+     {$group:{
+         _id:{$dayOfMonth:"$cat"},
+         count:{$sum:1}
+         }}
+     )
